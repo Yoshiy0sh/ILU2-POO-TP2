@@ -2,6 +2,7 @@ package frontiere;
 
 
 import controleur.ControlAcheterProduit;
+import exceptions.InvalidGauloisException;
 
 public class BoundaryAcheterProduit {
 	private ControlAcheterProduit controlAcheterProduit;
@@ -11,36 +12,56 @@ public class BoundaryAcheterProduit {
 	}
 
 	public void acheterProduit(String nomAcheteur) {
-		if(controlAcheterProduit.gauloisValide(nomAcheteur)) {
+		try {
+			verifierGaulois(nomAcheteur);
 			String produit = Clavier.entrerChaine("Quel produit souhaitez-vous acheter?");
+			String[] nomsVendeurs = affichageVendeurs(produit);
+			int indiceVendeur = (Clavier.entrerEntier("Chez quel commerï¿½ant souhaitez vous acheter des " + produit + " ?") - 1);
 			
-			String[] nomsVendeurs = controlAcheterProduit.trouverVendeursProduit(produit);
-			if(nomsVendeurs != null) {
-				StringBuilder optionsVendeurs = new StringBuilder();
-				for (int i = 0; i < nomsVendeurs.length; i++) {
-					optionsVendeurs.append((i+1) + " - " + nomsVendeurs[i] + '\n');
-				}
-				
-				int indiceVendeur = (Clavier.entrerEntier(optionsVendeurs.toString() + "Chez quel commerçant souhaitez vous acheter des " + produit + " ?") - 1);
-				if(controlAcheterProduit.gauloisValide(nomsVendeurs[indiceVendeur])) {
-					System.out.println(nomAcheteur + " se déplace jusqu'à l'étal du vendeur " + nomsVendeurs[indiceVendeur]);
-					int nbProduit = Clavier.entrerEntier("Bonjour " + nomAcheteur + "\nCombien de " + produit + " voulez vous acheter?");
-					
-					if(controlAcheterProduit.etalVide(nomsVendeurs[indiceVendeur])) System.out.println(nomAcheteur + " veut acheter " + nbProduit + " malheureusement il n'y en a plus !");
-					else if(controlAcheterProduit.quantiteEtalInsuffisante(nomsVendeurs[indiceVendeur],nbProduit)) { System.out.println(nomAcheteur + " veut acheter " + nbProduit + " malheureusement il n'y en a plus que "
-							+ controlAcheterProduit.getQuantiteProduitEtal(nomsVendeurs[indiceVendeur]) + ". " + nomAcheteur + " achète tout le stock de " + nomsVendeurs[indiceVendeur]);
-					
-						controlAcheterProduit.acheterProduit(nomsVendeurs[indiceVendeur],nbProduit);
-					}
-					else {
-						System.out.println(nomAcheteur + " achète " + nbProduit + " " + produit + " à " + nomsVendeurs[indiceVendeur]);
-						controlAcheterProduit.acheterProduit(nomsVendeurs[indiceVendeur],nbProduit);
-					}
-				}
-				else System.out.println("Je suis désolé " + nomsVendeurs[indiceVendeur] + " mais il faut être un habitant de notre village pour commercer ici");
-			}
-			else System.out.println("Désolé, personne ne vend ce produit au marché");
+			String nomVendeur = nomsVendeurs[indiceVendeur];
+			verifierGaulois(nomVendeur);
+			System.out.println(nomAcheteur + " se dï¿½place jusqu'ï¿½ l'ï¿½tal du vendeur " + nomVendeur);
+			int nbProduit = Clavier.entrerEntier("Bonjour " + nomAcheteur + "\nCombien de " + produit + " voulez vous acheter?");
+			verifierEtal(nomAcheteur,nomVendeur,nbProduit,produit);
 		}
-		else System.out.println("Je suis désolé " + nomAcheteur + " mais il faut être un habitant de notre village pour commercer ici");
+		catch(NullPointerException | InvalidGauloisException e) {
+		}
+		
+	}
+		
+	private void verifierGaulois(String nomGaulois) throws InvalidGauloisException{
+		if(!controlAcheterProduit.gauloisValide(nomGaulois)) {
+			System.out.println("Je suis dï¿½solï¿½ " + nomGaulois + " mais il faut ï¿½tre un habitant de notre village pour commercer ici");
+			throw new InvalidGauloisException();
+		}
+	}
+	
+	private String[] affichageVendeurs(String produit) throws NullPointerException {
+		String[] nomsVendeurs = controlAcheterProduit.trouverVendeursProduit(produit);
+		if(nomsVendeurs == null) {
+			System.out.println("DÃ©solÃ©, personne ne vend ce produit au marchÃ©");
+			throw new NullPointerException();
+		}
+		else {
+			StringBuilder optionsVendeurs = new StringBuilder();
+			for (int i = 0; i < nomsVendeurs.length; i++) {
+				optionsVendeurs.append((i+1) + " - " + nomsVendeurs[i] + '\n');
+			}
+			System.out.println(optionsVendeurs.toString());
+			return nomsVendeurs;
+		}
+	}
+	
+	private void verifierEtal(String nomAcheteur, String nomVendeur,int nbProduit,String produit) {
+		if(controlAcheterProduit.etalVide(nomVendeur)) System.out.println(nomAcheteur + " veut acheter " + nbProduit + " malheureusement il n'y en a plus !");
+		else if(controlAcheterProduit.quantiteEtalInsuffisante(nomVendeur,nbProduit)) { System.out.println(nomAcheteur + " veut acheter " + nbProduit + " malheureusement il n'y en a plus que "
+				+ controlAcheterProduit.getQuantiteProduitEtal(nomVendeur) + ". " + nomAcheteur + " achï¿½te tout le stock de " + nomVendeur);
+		
+			controlAcheterProduit.acheterProduit(nomVendeur,nbProduit);
+		}
+		else {
+			System.out.println(nomAcheteur + " achï¿½te " + nbProduit + " " + produit + " ï¿½ " + nomVendeur);
+			controlAcheterProduit.acheterProduit(nomVendeur,nbProduit);
+		}
 	}
 }
